@@ -17,14 +17,14 @@
 **How I verified:** I used the test_add_to_collection_nonexistent_film_raises() in tests/test_collection.py as reference, and implemented the same logic for the file to return exception for non-existent films.
 
 ## Comment 4 — Default visibility
-**My position:**
-**Reasoning:**
-**Tradeoff acknowledged:**
+**My position:** The watchlist visibility default should be public. 
+**Reasoning:** A watchlist is a list of films a user wants to watch or save for later. Beyond personal tracking, a public default supports the product's social goals — letting users share what they're interested in with friends and helping surface and promote films to other users — without requiring every user to hunt for a setting to turn sharing on.
+**Tradeoff acknowledged:** The honest objection is that safe defaults for personal data are usually private, and the harm here is asymmetric: a private default that a user wants to share is reversible (flip one setting), but a public default the user didn't want is not — the data may already have been seen or cached before they notice. I also acknowledge the discovery benefit accrues mainly to the platform while the privacy cost falls on the user. And the current code makes a public default hard to fully honor: `add_to_watchlist()` takes no `public` argument (so entries can't opt out at creation) and `get_watchlist()` doesn't filter on `public`, so the follow-up work is to add a `public` param to `add_to_watchlist()` and filter on `public=True` when serving another user's watchlist.
 
 ## Comment 5 — Sort order
-**My position:**
-**Reasoning:**
-**Engagement with reviewer's point:**
+**My position:** I agree with the maintainer's preference to sort the watchlist by date added (newest first). 
+**Reasoning:** Sorting by date added surfaces what the user most recently wanted to watch, and matching the collection's ordering keeps the two views consistent so the app behaves predictably. It also lets users track when they came across each film, which reinforces the sense of building a personal collection over time.
+**Engagement with reviewer's point:** I agree with the reviewer, I believe the design to sort movies by date added make the most logical sense as it allows users to keep track of what they added recently.
 
 ## Comment 6 — Rebase
 **What conflicted:**
