@@ -7,7 +7,8 @@ Business logic for the watchlist feature.
 from app import db
 from models import Film, WatchlistEntry
 from services.collection_service import FilmNotFoundError
-
+from models import CollectionEntry
+from collection_service import AlreadyInCollectionError
 
 def add_to_watchlist(user_id, film_id):
     """
@@ -22,17 +23,30 @@ def add_to_watchlist(user_id, film_id):
 
     Raises:
         FilmNotFoundError: If film_id does not exist.
+    
+    TO DO: Add deduplication logic to add_to_watchlist() in services/watchlist_service.py. 
+    Look at how add_to_collection() in services/collection_service.py handles this
+    — follow the same pattern.
     """
     film = db.session.get(Film, film_id)
     if film is None:
         raise FilmNotFoundError(f"No film found with id '{film_id}'")
 
+    existing = CollectionEntry.query.filter_by(
+        user_id=user_id, film_id=film_id
+    ).first()
+    if existing:
+        raise AlreadyInCollectionError(
+            f"Film '{film_id}' is already in this user's collection"
+        )
+        
     entry = WatchlistEntry(user_id=user_id, film_id=film_id)
     db.session.add(entry)
     db.session.commit()
     return entry
 
-
+    """
+    """
 def get_watchlist(user_id):
     """
     Return all films on a user's watchlist.
