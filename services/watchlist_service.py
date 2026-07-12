@@ -3,12 +3,16 @@ services/watchlist_service.py — CineLog (feature/watchlist branch)
 
 Business logic for the watchlist feature.
 """
-
+# top of watchlist_service.py — fix the import path, drop the bad one
 from app import db
 from models import Film, WatchlistEntry
 from services.collection_service import FilmNotFoundError
-from models import CollectionEntry
-from collection_service import AlreadyInCollectionError
+# from models import CollectionEntry
+# from services.collection_service import AlreadyInCollectionError
+
+class AlreadyInWatchlistError(Exception):
+    """Raised when a film is already on the user's watchlist."""
+    pass
 
 def add_to_watchlist(user_id, film_id):
     """
@@ -32,12 +36,12 @@ def add_to_watchlist(user_id, film_id):
     if film is None:
         raise FilmNotFoundError(f"No film found with id '{film_id}'")
 
-    existing = CollectionEntry.query.filter_by(
+    existing = WatchlistEntry.query.filter_by(
         user_id=user_id, film_id=film_id
     ).first()
     if existing:
-        raise AlreadyInCollectionError(
-            f"Film '{film_id}' is already in this user's collection"
+        raise AlreadyInWatchlistError(
+            f"Film '{film_id}' is already in this user's watchlist"
         )
         
     entry = WatchlistEntry(user_id=user_id, film_id=film_id)
