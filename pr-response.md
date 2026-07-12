@@ -27,7 +27,7 @@
 **Engagement with reviewer's point:** I agree with the reviewer, I believe the design to sort movies by date added make the most logical sense as it allows users to keep track of what they added recently.
 
 ## Comment 6 — Rebase
-**What conflicted:**
+**What conflicted:** 
 **How I resolved it:**
 **How I verified no conflict remains:**
 
