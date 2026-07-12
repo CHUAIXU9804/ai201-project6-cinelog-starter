@@ -27,9 +27,9 @@
 **Engagement with reviewer's point:** I agree with the reviewer, I believe the design to sort movies by date added make the most logical sense as it allows users to keep track of what they added recently.
 
 ## Comment 6 — Rebase
-**What conflicted:** 
-**How I resolved it:**
-**How I verified no conflict remains:**
+**What conflicted:** After `git fetch origin` and `git rebase origin/main`, the conflict was in `models.py`. Main had refactored film IDs from integer to UUID (`Film.id` and `CollectionEntry.film_id` became `db.String(36)`), while my `feature/watchlist` branch had added the new `WatchlistEntry` model with an integer `film_id`. So the same file was changed on both sides: main's UUID migration overlapped with my new model. Naively taking main's version of `models.py` resolved the type conflict but silently dropped `WatchlistEntry` entirely (main never had it), which broke `services/watchlist_service.py` — its `from models import Film, WatchlistEntry` raised `ImportError` and the whole watchlist feature failed to load.
+**How I resolved it:** I reconciled both sides instead of choosing one. I restored `WatchlistEntry` to `models.py` in its post-refactor form: `film_id = db.Column(db.String(36), db.ForeignKey("film.id"))` (UUID, matching `CollectionEntry.film_id`), keeping its original fields (`public` defaulting to `True`, no rating). I also updated the stale docstring in `add_to_watchlist()` in `services/watchlist_service.py`, which still described `film_id` as `int (pre-refactor)`, to `str (UUID of the film)`.
+**How I verified no conflict remains:** `git diff --check` reports no conflict markers. `services.watchlist_service` now imports cleanly and `WatchlistEntry.film_id` resolves to `VARCHAR(36)`. The full test suite passes (5 passed — 4 collection tests + `test_add_to_watchlist_nonexistent_film_raises`). History is linear — `git log --merges origin/main..HEAD` returns nothing, confirming the branch was rebased rather than merged and no merge commits remain.
 
 ## PR Description
 <!-- Written at the end — feature overview, design decisions, manual testing steps -->
