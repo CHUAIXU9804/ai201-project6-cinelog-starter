@@ -2,6 +2,7 @@
 
 ## AI Usage
 <!-- Fill in at the end — how you used AI tools during this project -->
+I used Claude to help myself understand the structure of each file, and logic of each function, and verify commit format for the commit history.
 
 ## Comment 1 — Rename
 **What I did:** Renamed save_to_watchlist() to add_to_watchlist() in services/watchlist_service.py and update all call sites
@@ -32,5 +33,45 @@
 **How I verified no conflict remains:** `git diff --check` reports no conflict markers. `services.watchlist_service` now imports cleanly and `WatchlistEntry.film_id` resolves to `VARCHAR(36)`. The full test suite passes (5 passed — 4 collection tests + `test_add_to_watchlist_nonexistent_film_raises`). History is linear — `git log --merges origin/main..HEAD` returns nothing, confirming the branch was rebased rather than merged and no merge commits remain.
 
 ## PR Description
-<!-- Written at the end — feature overview, design decisions, manual testing steps -->
+
+### What this feature does
+Adds a **watchlist** to CineLog — films a user wants to watch later, kept separate from the existing "collection" (films already watched). It introduces:
+- **`WatchlistEntry` model** (`models.py`) — links a user to a film, with a `date_added` timestamp and a `public` visibility flag.
+- **Service layer** (`services/watchlist_service.py`):
+  - `add_to_watchlist(user_id, film_id)` — validates the film exists (`FilmNotFoundError`) and rejects duplicates (`AlreadyInWatchlistError`).
+  - `get_watchlist(user_id)` — returns the user's saved films with `date_added` and `public` attached.
+- **REST endpoints** (`routes/watchlist/watchlist.py`, registered under `/watchlist`):
+  - `GET /watchlist/<user_id>` — view a user's watchlist.
+  - `POST /watchlist/<user_id>/add` with body `{"film_id": "<uuid>"}` — add a film.
+
+### Design decisions
+- **Default visibility = public** (Comment 4): supports the product's sharing/discovery goals. The honest tradeoff (privacy-by-default norms, irreversible disclosure) and follow-up work (a `public` param on `add_to_watchlist` + filtering in `get_watchlist`) are documented above.
+- **Sort order = date added** (Comment 5): keeps the watchlist consistent with `get_collection()`'s ordering; the tradeoff vs. alphabetical (harder lookup as the list grows) is noted, with a user-selectable sort as the long-term answer.
+- **`film_id` is a UUID** (Comment 6): reconciled with main's integer→UUID refactor so `WatchlistEntry.film_id` matches `Film.id` and `CollectionEntry.film_id`.
+- **Deduplication** mirrors `add_to_collection()` but raises a watchlist-specific `AlreadyInWatchlistError` rather than reusing the collection's exception.
+
+### How to manually test
+```bash
+# 1. Set up and run
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python app.py                     # serves on http://127.0.0.1:5000
+
+# 2. Create a user and a film (via a Python shell or existing endpoints) and note
+#    their UUIDs, then:
+
+# Add a film to the watchlist
+curl -X POST http://127.0.0.1:5000/watchlist/<user_id>/add \
+  -H "Content-Type: application/json" -d '{"film_id": "<film_uuid>"}'
+# → 201 with the new entry (public: true)
+
+# View the watchlist
+curl http://127.0.0.1:5000/watchlist/<user_id>
+# → JSON list of films, each with date_added and public
+```
+Expected edge-case behavior:
+- Adding the **same film twice** → `AlreadyInWatchlistError` (no duplicate created).
+- Adding a **nonexistent `film_id`** → `FilmNotFoundError`.
+
+Automated coverage: `python -m pytest tests/` — 5 tests pass, including `test_add_to_watchlist_nonexistent_film_raises`.
 
